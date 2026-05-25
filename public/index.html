@@ -8,6 +8,22 @@
     <link rel="stylesheet" href="/css/styles.css">
   </head>
   <body>
+    <div class="player-gate" id="playerGate" aria-hidden="true">
+      <form class="player-gate-card" id="playerGateForm">
+        <p class="eyebrow">Antes de jugar</p>
+        <h2>Elige un nombre</h2>
+        <p class="gate-copy">Lo usaremos para identificar tus visitas y partidas en el panel del juego.</p>
+        <label>
+          <span>Nombre o apodo</span>
+          <input id="playerNameInput" name="playerName" type="text" maxlength="32" autocomplete="nickname" required>
+        </label>
+        <div class="hero-actions">
+          <button class="button primary" type="submit">Entrar</button>
+          <button class="button secondary" id="changePlayerButton" type="button">Cambiar luego</button>
+        </div>
+      </form>
+    </div>
+
     <header class="site-header">
       <a class="brand" href="/">
         <span class="brand-mark"></span>
@@ -41,6 +57,10 @@
           <div>
             <strong id="playCount">0</strong>
             <span>partidas</span>
+          </div>
+          <div>
+            <strong id="playerBadge">Invitado</strong>
+            <span>jugador actual</span>
           </div>
         </aside>
       </section>

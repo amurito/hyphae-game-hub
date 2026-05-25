@@ -154,9 +154,13 @@ function clientIp(req) {
 }
 
 function publicMeta(req) {
+  const playerName = typeof req.body?.playerName === "string" ? req.body.playerName.trim().slice(0, 32) : "";
+  const playerId = typeof req.body?.playerId === "string" ? req.body.playerId.trim().slice(0, 80) : "";
   return {
     ip: clientIp(req),
-    userAgent: req.headers["user-agent"] || ""
+    userAgent: req.headers["user-agent"] || "",
+    playerName,
+    playerId
   };
 }
 

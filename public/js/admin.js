@@ -82,15 +82,17 @@ function renderLogs(logs) {
   const filteredLogs = filter === "all" ? logs : logs.filter((log) => log.type === filter);
 
   if (filteredLogs.length === 0) {
-    logsTable.innerHTML = `<tr><td colspan="4">No hay logs registrados.</td></tr>`;
+    logsTable.innerHTML = `<tr><td colspan="5">No hay logs registrados.</td></tr>`;
     return;
   }
 
   for (const log of filteredLogs) {
     const row = document.createElement("tr");
+    const playerLabel = log.meta.playerName || (log.meta.playerId ? `ID ${log.meta.playerId.slice(0, 8)}` : "-");
     row.innerHTML = `
       <td>${formatDate(log.created_at)}</td>
       <td>${log.type === "visit" ? "Visita" : "Partida"}</td>
+      <td>${playerLabel}</td>
       <td>${log.meta.ip || "-"}</td>
       <td>${log.meta.userAgent || "-"}</td>
     `;
