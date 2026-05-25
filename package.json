@@ -1,0 +1,33 @@
+{
+  "name": "hyphae-game-hub",
+  "version": "1.0.0",
+  "description": "Sitio propio para alojar un juego HTML5 con estadisticas y panel de administracion.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "html5-game",
+    "express",
+    "sqlite",
+    "admin"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "extract-zip": "^2.0.1",
+    "mime-types": "^3.0.2",
+    "multer": "^2.0.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^6.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

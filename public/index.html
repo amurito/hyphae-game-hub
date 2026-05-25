@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hyphae Game Hub</title>
+    <meta name="description" content="Pagina publica para jugar y seguir estadisticas de un juego HTML5.">
+    <link rel="stylesheet" href="/css/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span>Hyphae</span>
+      </a>
+      <nav class="top-nav" aria-label="Principal">
+        <a href="#game">Juego</a>
+        <a href="#about">Descripcion</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">HTML5 Game</p>
+          <h1>Hyphae</h1>
+          <p class="hero-text">
+            Un espacio propio para publicar, jugar y medir el rendimiento del juego sin depender de plataformas externas.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#game" id="playButton">Jugar</a>
+            <a class="button secondary" href="#about">Ver detalles</a>
+          </div>
+        </div>
+        <aside class="stats-strip" aria-label="Estadisticas publicas">
+          <div>
+            <strong id="visitCount">0</strong>
+            <span>visitas</span>
+          </div>
+          <div>
+            <strong id="playCount">0</strong>
+            <span>partidas</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="game-section" id="game">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Ahora disponible</p>
+            <h2>Juega en el navegador</h2>
+          </div>
+          <button class="button compact" id="fullscreenButton" type="button">Pantalla completa</button>
+        </div>
+
+        <div class="game-frame-wrap">
+          <iframe
+            id="gameFrame"
+            class="game-frame"
+            title="Juego HTML5"
+            src="/game/index.html"
+            allow="fullscreen; autoplay; gamepad"
+          ></iframe>
+        </div>
+      </section>
+
+      <section class="content-grid" id="about">
+        <article class="text-panel">
+          <p class="eyebrow">Descripcion</p>
+          <h2>Publicacion independiente</h2>
+          <p>
+            Esta pagina carga el juego desde <code>/game/index.html</code>. Desde el panel privado puedes reemplazar
+            los archivos del juego, revisar visitas y partidas, consultar logs basicos y reiniciar contadores.
+          </p>
+        </article>
+
+        <article class="text-panel">
+          <p class="eyebrow">Estado</p>
+          <h2>Metricas persistentes</h2>
+          <p>
+            Los datos se guardan en SQLite y sobreviven a reinicios del servidor. Las visitas y partidas se cuentan
+            una vez por sesion de navegador para evitar duplicados accidentales.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>Hyphae Game Hub</span>
+      <span>Hecho para juegos HTML5 autoalojados.</span>
+    </footer>
+
+    <script src="/js/main.js" defer></script>
+  </body>
+</html>

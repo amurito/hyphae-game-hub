@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin | Hyphae</title>
+    <link rel="stylesheet" href="/css/styles.css">
+  </head>
+  <body class="admin-login-page">
+    <main class="login-shell">
+      <form class="login-box" id="loginForm">
+        <a class="brand" href="/">
+          <span class="brand-mark"></span>
+          <span>Hyphae</span>
+        </a>
+        <div>
+          <p class="eyebrow">Panel privado</p>
+          <h1>Administracion</h1>
+        </div>
+        <label>
+          <span>Clave</span>
+          <input name="password" type="password" autocomplete="current-password" required autofocus>
+        </label>
+        <button class="button primary" type="submit">Entrar</button>
+        <p class="form-message" id="loginMessage" role="status"></p>
+      </form>
+    </main>
+
+    <script>
+      const form = document.querySelector("#loginForm");
+      const message = document.querySelector("#loginMessage");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        message.textContent = "";
+
+        const response = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: form.password.value })
+        });
+
+        if (response.ok) {
+          window.location.href = "/admin";
+          return;
+        }
+
+        const data = await response.json().catch(() => ({}));
+        message.textContent = data.error || "No se pudo iniciar sesion.";
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Panel Admin | Hyphae</title>
+    <link rel="stylesheet" href="/css/styles.css">
+  </head>
+  <body class="admin-page">
+    <header class="site-header">
+      <a class="brand" href="/">
+        <span class="brand-mark"></span>
+        <span>Hyphae Admin</span>
+      </a>
+      <nav class="top-nav" aria-label="Administracion">
+        <a href="/">Publica</a>
+        <button class="nav-button" id="logoutButton" type="button">Salir</button>
+      </nav>
+    </header>
+
+    <main class="admin-layout">
+      <section class="admin-hero">
+        <div>
+          <p class="eyebrow">Panel de control</p>
+          <h1>Gestion del juego</h1>
+        </div>
+        <button class="button danger" id="resetButton" type="button">Resetear contadores</button>
+      </section>
+
+      <section class="metric-grid" aria-label="Metricas">
+        <article class="metric-card">
+          <span>Visitas</span>
+          <strong id="adminVisitCount">0</strong>
+        </article>
+        <article class="metric-card">
+          <span>Partidas</span>
+          <strong id="adminPlayCount">0</strong>
+        </article>
+      </section>
+
+      <section class="admin-grid">
+        <article class="admin-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Deploy</p>
+              <h2>Subir juego</h2>
+            </div>
+          </div>
+          <form id="uploadForm" class="upload-form">
+            <label class="file-drop">
+              <input id="gameFiles" name="gameFiles" type="file" multiple accept=".zip,.html,.js,.css,.json,.png,.jpg,.jpeg,.webp,.gif,.svg,.wasm,.pck,.mp3,.ogg,.wav">
+              <span>Seleccionar ZIP o archivos del juego</span>
+              <small>El servidor reemplaza el contenido actual de <code>/public/game/</code>.</small>
+            </label>
+            <button class="button primary" type="submit">Subir y reemplazar</button>
+            <p class="form-message" id="uploadMessage" role="status"></p>
+          </form>
+        </article>
+
+        <article class="admin-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Ultimos 30 dias</p>
+              <h2>Visitas por dia</h2>
+            </div>
+          </div>
+          <canvas id="visitsChart" class="chart" width="720" height="320"></canvas>
+        </article>
+      </section>
+
+      <section class="admin-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Actividad</p>
+            <h2>Logs recientes</h2>
+          </div>
+          <button class="button compact" id="refreshButton" type="button">Actualizar</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>IP</th>
+                <th>Navegador</th>
+              </tr>
+            </thead>
+            <tbody id="logsTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="/js/admin.js" defer></script>
+  </body>
+</html>
