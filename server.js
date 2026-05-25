@@ -13,6 +13,10 @@ const { createClient } = require("@supabase/supabase-js");
 
 require("dotenv").config();
 
+if (typeof WebSocket === "undefined") {
+  global.WebSocket = require("ws");
+}
+
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
