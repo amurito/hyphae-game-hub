@@ -108,8 +108,7 @@ async function ensureSupabaseBucket() {
   const exists = buckets.some((bucket) => bucket.name === SUPABASE_GAME_BUCKET);
   if (!exists) {
     const { error } = await supabase.storage.createBucket(SUPABASE_GAME_BUCKET, {
-      public: false,
-      fileSizeLimit: 250 * 1024 * 1024
+      public: false
     });
     if (error) {
       throw error;
