@@ -5,7 +5,6 @@ const path = require("path");
 
 const cookieParser = require("cookie-parser");
 const express = require("express");
-const session = require("express-session");
 const multer = require("multer");
 const extractZip = require("extract-zip");
 const mime = require("mime-types");
@@ -20,11 +19,16 @@ if (typeof WebSocket === "undefined") {
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-change-me";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_GAME_BUCKET = process.env.SUPABASE_GAME_BUCKET || "game";
 const useSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+const adminCookieName = "hg_admin";
+const adminSessionTtlMs = 1000 * 60 * 60 * 8;
+const loginWindowMs = 1000 * 60 * 15;
+const loginMaxAttempts = 10;
 
 const rootDir = __dirname;
 const publicDir = path.join(rootDir, "public");
@@ -43,6 +47,7 @@ const upload = multer({
 
 let db;
 let supabase;
+const loginAttempts = new Map();
 
 async function ensureDirectories() {
   await fs.mkdir(dataDir, { recursive: true });
@@ -132,6 +137,10 @@ function isoNow() {
   return new Date().toISOString();
 }
 
+function nowMs() {
+  return Date.now();
+}
+
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -149,6 +158,99 @@ function publicMeta(req) {
     ip: clientIp(req),
     userAgent: req.headers["user-agent"] || ""
   };
+}
+
+function hashPassword(password, salt) {
+  return crypto.scryptSync(password, salt, 64).toString("hex");
+}
+
+function verifyPassword(password) {
+  if (ADMIN_PASSWORD_HASH) {
+    const [scheme, salt, expectedHash] = ADMIN_PASSWORD_HASH.split(":");
+    if (scheme !== "scrypt" || !salt || !expectedHash) {
+      throw new Error("ADMIN_PASSWORD_HASH debe tener formato scrypt:salt:hash");
+    }
+    const actualHash = hashPassword(password, salt);
+    if (actualHash.length !== expectedHash.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(Buffer.from(actualHash, "hex"), Buffer.from(expectedHash, "hex"));
+  }
+
+  return password === ADMIN_PASSWORD;
+}
+
+function createAdminToken(expiresAt) {
+  const payload = `${expiresAt}`;
+  const signature = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
+  return `${payload}.${signature}`;
+}
+
+function verifyAdminToken(token) {
+  if (!token || !token.includes(".")) {
+    return false;
+  }
+
+  const [expiresAt, signature] = token.split(".");
+  if (!expiresAt || !signature) {
+    return false;
+  }
+
+  const expected = crypto.createHmac("sha256", SESSION_SECRET).update(expiresAt).digest("hex");
+  if (!crypto.timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"))) {
+    return false;
+  }
+
+  return Number(expiresAt) > nowMs();
+}
+
+function setAdminCookie(res) {
+  const expiresAt = nowMs() + adminSessionTtlMs;
+  res.cookie(adminCookieName, createAdminToken(expiresAt), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: adminSessionTtlMs
+  });
+}
+
+function clearAdminCookie(res) {
+  res.clearCookie(adminCookieName);
+}
+
+function checkLoginRateLimit(req) {
+  const key = clientIp(req) || "unknown";
+  const attempt = loginAttempts.get(key);
+  const now = nowMs();
+
+  if (!attempt || now > attempt.resetAt) {
+    loginAttempts.set(key, { count: 0, resetAt: now + loginWindowMs });
+    return { limited: false };
+  }
+
+  if (attempt.count >= loginMaxAttempts) {
+    return {
+      limited: true,
+      retryAfterSec: Math.ceil((attempt.resetAt - now) / 1000)
+    };
+  }
+
+  return { limited: false };
+}
+
+function registerLoginFailure(req) {
+  const key = clientIp(req) || "unknown";
+  const now = nowMs();
+  const attempt = loginAttempts.get(key);
+  if (!attempt || now > attempt.resetAt) {
+    loginAttempts.set(key, { count: 1, resetAt: now + loginWindowMs });
+    return;
+  }
+  attempt.count += 1;
+}
+
+function clearLoginFailures(req) {
+  loginAttempts.delete(clientIp(req) || "unknown");
 }
 
 async function ensureVisitorSession(req, res) {
@@ -268,14 +370,14 @@ async function setVisitorFlag(visitorId, field) {
 }
 
 function requireAdmin(req, res, next) {
-  if (req.session && req.session.isAdmin) {
+  if (verifyAdminToken(req.cookies[adminCookieName])) {
     return next();
   }
   return res.status(401).json({ error: "No autenticado" });
 }
 
 function requireAdminPage(req, res, next) {
-  if (req.session && req.session.isAdmin) {
+  if (verifyAdminToken(req.cookies[adminCookieName])) {
     return next();
   }
   return res.redirect("/admin/login");
@@ -409,6 +511,9 @@ async function clearSupabaseGameFiles() {
     const files = [];
     for (const item of data) {
       const key = prefix ? `${prefix}/${item.name}` : item.name;
+      if (!prefix && key.startsWith("__")) {
+        continue;
+      }
       if (item.id === null) {
         await removeFrom(key);
       } else {
@@ -443,6 +548,62 @@ async function uploadGameToSupabase() {
       throw error;
     }
   }
+}
+
+async function writeDeploymentManifest() {
+  const files = await listLocalFiles(gameDir);
+  const manifest = {
+    deployedAt: isoNow(),
+    fileCount: files.length,
+    files
+  };
+
+  if (useSupabase) {
+    const body = Buffer.from(JSON.stringify(manifest, null, 2), "utf8");
+    const latest = await supabase.storage.from(SUPABASE_GAME_BUCKET).upload("__meta/latest.json", body, {
+      contentType: "application/json",
+      upsert: true
+    });
+    if (latest.error) {
+      throw latest.error;
+    }
+
+    const version = await supabase.storage
+      .from(SUPABASE_GAME_BUCKET)
+      .upload(`__versions/${manifest.deployedAt.replace(/[:.]/g, "-")}.json`, body, {
+        contentType: "application/json",
+        upsert: true
+      });
+    if (version.error) {
+      throw version.error;
+    }
+    return manifest;
+  }
+
+  await fs.mkdir(path.join(dataDir, "versions"), { recursive: true });
+  await fs.writeFile(path.join(dataDir, "latest-deploy.json"), JSON.stringify(manifest, null, 2), "utf8");
+  await fs.writeFile(
+    path.join(dataDir, "versions", `${manifest.deployedAt.replace(/[:.]/g, "-")}.json`),
+    JSON.stringify(manifest, null, 2),
+    "utf8"
+  );
+  return manifest;
+}
+
+async function getDeploymentManifest() {
+  if (useSupabase) {
+    const { data, error } = await supabase.storage.from(SUPABASE_GAME_BUCKET).download("__meta/latest.json");
+    if (error || !data) {
+      return null;
+    }
+    return JSON.parse(Buffer.from(await data.arrayBuffer()).toString("utf8"));
+  }
+
+  const target = path.join(dataDir, "latest-deploy.json");
+  if (!fssync.existsSync(target)) {
+    return null;
+  }
+  return JSON.parse(await fs.readFile(target, "utf8"));
 }
 
 async function serveSupabaseGameFile(req, res, next) {
@@ -484,6 +645,7 @@ async function installUploadedGame(files) {
     if (useSupabase) {
       await uploadGameToSupabase();
     }
+    await writeDeploymentManifest();
     return;
   }
 
@@ -516,6 +678,7 @@ async function installUploadedGame(files) {
   if (useSupabase) {
     await uploadGameToSupabase();
   }
+  await writeDeploymentManifest();
 }
 
 async function cleanupUploads(files) {
@@ -528,19 +691,6 @@ app.disable("x-powered-by");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(
-  session({
-    name: "hg_admin",
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 8
-    }
-  })
-);
 
 app.get("/admin/login", (req, res) => {
   res.sendFile(path.join(publicDir, "admin-login.html"));
@@ -551,20 +701,25 @@ app.get("/admin", requireAdminPage, (req, res) => {
 });
 
 app.post("/api/admin/login", async (req, res) => {
+  const limit = checkLoginRateLimit(req);
+  if (limit.limited) {
+    return res.status(429).json({ error: `Demasiados intentos. Reintenta en ${limit.retryAfterSec}s.` });
+  }
+
   const { password } = req.body;
-  if (password !== ADMIN_PASSWORD) {
+  if (!verifyPassword(password || "")) {
+    registerLoginFailure(req);
     return res.status(401).json({ error: "Clave incorrecta" });
   }
 
-  req.session.isAdmin = true;
+  clearLoginFailures(req);
+  setAdminCookie(res);
   return res.json({ ok: true });
 });
 
 app.post("/api/admin/logout", requireAdmin, (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("hg_admin");
-    res.json({ ok: true });
-  });
+  clearAdminCookie(res);
+  res.json({ ok: true });
 });
 
 app.post("/api/visit", async (req, res, next) => {
@@ -616,6 +771,7 @@ app.get("/api/admin/stats", requireAdmin, async (req, res, next) => {
     let days;
     let logs;
     const stats = await currentStats();
+    const deployment = await getDeploymentManifest();
 
     if (useSupabase) {
       const [daysResult, logsResult] = await Promise.all([
@@ -640,6 +796,7 @@ app.get("/api/admin/stats", requireAdmin, async (req, res, next) => {
     res.json({
       stats,
       days: days.reverse(),
+      deployment,
       logs: logs.map((log) => ({
         ...log,
         meta: typeof log.meta === "string" && log.meta ? JSON.parse(log.meta) : log.meta || {}
@@ -708,6 +865,9 @@ app.use((error, req, res, next) => {
 async function start() {
   await ensureDirectories();
   await initDatabase();
+  if (!await getDeploymentManifest()) {
+    await writeDeploymentManifest();
+  }
   app.listen(PORT, () => {
     console.log(`Servidor listo en http://localhost:${PORT}`);
     console.log(`Admin: http://localhost:${PORT}/admin`);

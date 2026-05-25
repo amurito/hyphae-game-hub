@@ -163,6 +163,35 @@ h2 {
   gap: 16px;
 }
 
+.toolbar-row,
+.deployment-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.deployment-meta {
+  flex-wrap: wrap;
+}
+
+.deployment-meta > div {
+  min-width: 180px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.deployment-meta span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+}
+
+.deployment-meta strong {
+  font-size: 1rem;
+}
+
 .hero-actions {
   justify-content: flex-start;
   flex-wrap: wrap;
@@ -335,11 +364,13 @@ button {
 }
 
 input[type="password"],
-input[type="file"] {
+input[type="file"],
+.select-control {
   width: 100%;
 }
 
-input[type="password"] {
+input[type="password"],
+.select-control {
   min-height: 46px;
   padding: 10px 12px;
   border: 1px solid var(--line);

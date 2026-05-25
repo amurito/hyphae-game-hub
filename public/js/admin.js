@@ -7,6 +7,10 @@ const uploadMessage = document.querySelector("#uploadMessage");
 const resetButton = document.querySelector("#resetButton");
 const refreshButton = document.querySelector("#refreshButton");
 const logoutButton = document.querySelector("#logoutButton");
+const logTypeFilter = document.querySelector("#logTypeFilter");
+const deployTimestamp = document.querySelector("#deployTimestamp");
+const deployFiles = document.querySelector("#deployFiles");
+let latestAdminData = null;
 
 function formatNumber(value) {
   return new Intl.NumberFormat("es").format(Number(value || 0));
@@ -74,13 +78,15 @@ function drawChart(days) {
 
 function renderLogs(logs) {
   logsTable.innerHTML = "";
+  const filter = logTypeFilter.value;
+  const filteredLogs = filter === "all" ? logs : logs.filter((log) => log.type === filter);
 
-  if (logs.length === 0) {
+  if (filteredLogs.length === 0) {
     logsTable.innerHTML = `<tr><td colspan="4">No hay logs registrados.</td></tr>`;
     return;
   }
 
-  for (const log of logs) {
+  for (const log of filteredLogs) {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${formatDate(log.created_at)}</td>
@@ -92,6 +98,17 @@ function renderLogs(logs) {
   }
 }
 
+function renderDeployment(deployment) {
+  if (!deployment) {
+    deployTimestamp.textContent = "Sin datos";
+    deployFiles.textContent = "0";
+    return;
+  }
+
+  deployTimestamp.textContent = formatDate(deployment.deployedAt);
+  deployFiles.textContent = formatNumber(deployment.fileCount);
+}
+
 async function loadAdminStats() {
   const response = await fetch("/api/admin/stats");
   if (response.status === 401) {
@@ -100,9 +117,11 @@ async function loadAdminStats() {
   }
 
   const data = await response.json();
+  latestAdminData = data;
   visitCount.textContent = formatNumber(data.stats.visits);
   playCount.textContent = formatNumber(data.stats.plays);
   drawChart(data.days);
+  renderDeployment(data.deployment);
   renderLogs(data.logs);
 }
 
@@ -125,6 +144,7 @@ uploadForm.addEventListener("submit", async (event) => {
   }
 
   uploadMessage.textContent = data.message || "Juego actualizado.";
+  await loadAdminStats();
 });
 
 resetButton.addEventListener("click", async () => {
@@ -139,6 +159,11 @@ resetButton.addEventListener("click", async () => {
 });
 
 refreshButton.addEventListener("click", loadAdminStats);
+logTypeFilter.addEventListener("change", () => {
+  if (latestAdminData) {
+    renderLogs(latestAdminData.logs);
+  }
+});
 
 logoutButton.addEventListener("click", async () => {
   await fetch("/api/admin/logout", { method: "POST" });

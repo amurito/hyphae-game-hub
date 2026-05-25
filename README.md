@@ -8,6 +8,8 @@ Sitio propio para alojar un juego HTML5, mostrarlo en una pagina publica y gesti
 - Contador persistente de visitas.
 - Contador persistente de partidas iniciadas con boton publico o evento del juego.
 - Panel admin protegido por clave.
+- Rate limit basico para intentos de login.
+- Cookie admin firmada para que el login sobreviva reinicios del servidor.
 - Subida de un `.zip` completo o archivos sueltos para reemplazar el juego actual.
 - Estadisticas en SQLite: totales, visitas por dia y logs recientes.
 - Reset de contadores y logs.
@@ -28,10 +30,18 @@ Opcional: crea un archivo `.env` tomando como base `.env.example`.
 ```bash
 PORT=3000
 ADMIN_PASSWORD=tu-clave-segura
+ADMIN_PASSWORD_HASH=
 SESSION_SECRET=un-secreto-largo-y-dificil
 ```
 
 Si no configuras variables de entorno, la clave temporal del admin sera `admin123`.
+Si defines `ADMIN_PASSWORD_HASH`, el backend usa esa clave hasheada en lugar de `ADMIN_PASSWORD`.
+
+Para generar un hash scrypt compatible:
+
+```bash
+node -e "const crypto=require('crypto'); const password='tu-clave'; const salt=crypto.randomBytes(16).toString('hex'); const hash=crypto.scryptSync(password, salt, 64).toString('hex'); console.log(`scrypt:${salt}:${hash}`)"
+```
 
 ## Ejecutar
 
@@ -104,6 +114,7 @@ npm start
 
 ```bash
 ADMIN_PASSWORD=tu-clave-segura
+ADMIN_PASSWORD_HASH=
 SESSION_SECRET=un-secreto-largo
 SUPABASE_URL=https://tu-proyecto.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
@@ -118,6 +129,7 @@ Tambien puedes usar el archivo `render.yaml` incluido para crear el servicio des
 - Logs: Supabase Postgres.
 - Sesiones contadas: Supabase Postgres.
 - Archivos del juego subidos desde admin: Supabase Storage.
+- Login admin: cookie firmada persistente.
 
 El disco local del servidor queda solo como carpeta temporal durante una subida.
 
@@ -198,6 +210,7 @@ Configura siempre estas variables antes de publicar:
 
 ```bash
 ADMIN_PASSWORD=una-clave-fuerte
+ADMIN_PASSWORD_HASH=
 SESSION_SECRET=un-secreto-largo
 ```
 

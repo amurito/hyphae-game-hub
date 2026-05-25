@@ -38,6 +38,25 @@
         </article>
       </section>
 
+      <section class="admin-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Deploy actual</p>
+            <h2>Version del juego</h2>
+          </div>
+        </div>
+        <div class="deployment-meta">
+          <div>
+            <span>Ultima subida</span>
+            <strong id="deployTimestamp">Sin datos</strong>
+          </div>
+          <div>
+            <span>Archivos</span>
+            <strong id="deployFiles">0</strong>
+          </div>
+        </div>
+      </section>
+
       <section class="admin-grid">
         <article class="admin-panel">
           <div class="panel-heading">
@@ -74,7 +93,14 @@
             <p class="eyebrow">Actividad</p>
             <h2>Logs recientes</h2>
           </div>
-          <button class="button compact" id="refreshButton" type="button">Actualizar</button>
+          <div class="toolbar-row">
+            <select id="logTypeFilter" class="select-control">
+              <option value="all">Todos</option>
+              <option value="visit">Visitas</option>
+              <option value="play">Partidas</option>
+            </select>
+            <button class="button compact" id="refreshButton" type="button">Actualizar</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
