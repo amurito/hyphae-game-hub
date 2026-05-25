@@ -10,8 +10,6 @@ const multer = require("multer");
 const extractZip = require("extract-zip");
 const mime = require("mime-types");
 const { createClient } = require("@supabase/supabase-js");
-const sqlite3 = require("sqlite3");
-const { open } = require("sqlite");
 
 require("dotenv").config();
 
@@ -57,6 +55,9 @@ async function initDatabase() {
     await seedSupabaseCounters();
     return;
   }
+
+  const sqlite3 = require("sqlite3");
+  const { open } = require("sqlite");
 
   db = await open({
     filename: dbPath,
