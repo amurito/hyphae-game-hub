@@ -72,9 +72,9 @@ language plpgsql
 security definer
 as $$
 begin
-  update public.counters set value = 0;
-  delete from public.logs;
-  delete from public.daily_stats;
-  update public.sessions set visit_counted = false, play_counted = false;
+  update public.counters set value = 0 where key in ('visits', 'plays');
+  delete from public.logs where id > 0;
+  delete from public.daily_stats where day is not null;
+  update public.sessions set visit_counted = false, play_counted = false where id is not null;
 end;
 $$;
