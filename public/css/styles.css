@@ -472,6 +472,15 @@ input[type="password"],
   height: 280px;
 }
 
+.player-count-badge {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
 .game-loader {
   position: absolute;
   inset: 0;

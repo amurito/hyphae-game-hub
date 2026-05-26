@@ -93,6 +93,29 @@
       <section class="admin-panel">
         <div class="panel-heading">
           <div>
+            <p class="eyebrow">Jugadores</p>
+            <h2>Quienes jugaron</h2>
+          </div>
+          <span class="player-count-badge" id="playerCount">0 jugadores</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Visitas</th>
+                <th>Partidas</th>
+                <th>Ultima actividad</th>
+              </tr>
+            </thead>
+            <tbody id="playersTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="panel-heading">
+          <div>
             <p class="eyebrow">Actividad</p>
             <h2>Logs recientes</h2>
           </div>
@@ -102,6 +125,7 @@
               <option value="visit">Visitas</option>
               <option value="play">Partidas</option>
             </select>
+            <button class="button compact" id="exportCsvButton" type="button">Exportar CSV</button>
             <button class="button compact" id="refreshButton" type="button">Actualizar</button>
           </div>
         </div>

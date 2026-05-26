@@ -1,11 +1,14 @@
 const visitCount = document.querySelector("#adminVisitCount");
 const playCount = document.querySelector("#adminPlayCount");
 const logsTable = document.querySelector("#logsTable");
+const playersTable = document.querySelector("#playersTable");
+const playerCount = document.querySelector("#playerCount");
 const visitsChart = document.querySelector("#visitsChart");
 const uploadForm = document.querySelector("#uploadForm");
 const uploadMessage = document.querySelector("#uploadMessage");
 const resetButton = document.querySelector("#resetButton");
 const refreshButton = document.querySelector("#refreshButton");
+const exportCsvButton = document.querySelector("#exportCsvButton");
 const logoutButton = document.querySelector("#logoutButton");
 const logTypeFilter = document.querySelector("#logTypeFilter");
 const deployTimestamp = document.querySelector("#deployTimestamp");
@@ -102,6 +105,69 @@ function renderLogs(logs) {
   }
 }
 
+function renderPlayers(logs) {
+  const players = new Map();
+
+  for (const log of logs) {
+    const key = log.meta.playerId || log.meta.playerName || "Anonimo";
+    const name = log.meta.playerName || "Anonimo";
+    if (!players.has(key)) {
+      players.set(key, { name, visits: 0, plays: 0, lastSeen: log.created_at });
+    }
+    const p = players.get(key);
+    if (log.type === "visit") p.visits++;
+    else if (log.type === "play") p.plays++;
+    if (log.created_at > p.lastSeen) p.lastSeen = log.created_at;
+  }
+
+  const sorted = [...players.values()].sort((a, b) => (b.visits + b.plays) - (a.visits + a.plays));
+  playerCount.textContent = `${sorted.length} jugador${sorted.length !== 1 ? "es" : ""}`;
+  playersTable.innerHTML = "";
+
+  if (sorted.length === 0) {
+    playersTable.innerHTML = `<tr><td colspan="4">Sin jugadores registrados.</td></tr>`;
+    return;
+  }
+
+  for (const p of sorted) {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><strong>${p.name}</strong></td>
+      <td>${p.visits}</td>
+      <td>${p.plays}</td>
+      <td>${formatDate(p.lastSeen)}</td>
+    `;
+    playersTable.appendChild(row);
+  }
+}
+
+function exportCsv(logs) {
+  const filter = logTypeFilter.value;
+  const rows = filter === "all" ? logs : logs.filter((l) => l.type === filter);
+  const header = ["Fecha", "Tipo", "Jugador", "PlayerID", "IP", "Navegador"];
+  const lines = [header.join(",")];
+
+  for (const log of rows) {
+    const cols = [
+      `"${log.created_at}"`,
+      log.type === "visit" ? "Visita" : "Partida",
+      `"${(log.meta.playerName || "").replace(/"/g, '""')}"`,
+      `"${(log.meta.playerId || "").replace(/"/g, '""')}"`,
+      `"${(log.meta.ip || "").replace(/"/g, '""')}"`,
+      `"${(log.meta.userAgent || "").replace(/"/g, '""')}"`
+    ];
+    lines.push(cols.join(","));
+  }
+
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `hyphae-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function renderDeployment(deployment) {
   if (!deployment) {
     deployTimestamp.textContent = "Sin datos";
@@ -126,6 +192,7 @@ async function loadAdminStats() {
   playCount.textContent = formatNumber(data.stats.plays);
   drawChart(data.days);
   renderDeployment(data.deployment);
+  renderPlayers(data.logs);
   renderLogs(data.logs);
 }
 
@@ -174,6 +241,9 @@ resetButton.addEventListener("click", async () => {
 });
 
 refreshButton.addEventListener("click", loadAdminStats);
+exportCsvButton.addEventListener("click", () => {
+  if (latestAdminData) exportCsv(latestAdminData.logs);
+});
 logTypeFilter.addEventListener("change", () => {
   if (latestAdminData) {
     renderLogs(latestAdminData.logs);
