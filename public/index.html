@@ -3,8 +3,22 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Hyphae Game Hub</title>
-    <meta name="description" content="Pagina publica para jugar y seguir estadisticas de un juego HTML5.">
+    <title>HYPHAE: genesis — Juego idle en el navegador</title>
+    <meta name="description" content="Controla un reactor vivo, expandí tu red de hifas y trasciende. Juego idle/incremental gratis, sin instalación.">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hyphae-game-hub.onrender.com">
+    <meta property="og:title" content="HYPHAE: genesis">
+    <meta property="og:description" content="Controla un reactor vivo, expandí tu red de hifas y trasciende. Juego idle/incremental gratis, sin instalación.">
+    <meta property="og:image" content="https://hyphae-game-hub.onrender.com/img/og-cover.jpg">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="HYPHAE: genesis">
+    <meta name="twitter:description" content="Controla un reactor vivo, expandí tu red de hifas y trasciende.">
+    <meta name="twitter:image" content="https://hyphae-game-hub.onrender.com/img/og-cover.jpg">
+
     <link rel="stylesheet" href="/css/styles.css">
   </head>
   <body>
@@ -75,6 +89,10 @@
         </div>
 
         <div class="game-frame-wrap">
+          <div class="game-loader" id="gameLoader" aria-label="Cargando juego">
+            <div class="game-loader-spinner"></div>
+            <p class="game-loader-label">Cargando juego…</p>
+          </div>
           <iframe
             id="gameFrame"
             class="game-frame"

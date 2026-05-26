@@ -3,6 +3,7 @@ const playCount = document.querySelector("#playCount");
 const playButton = document.querySelector("#playButton");
 const fullscreenButton = document.querySelector("#fullscreenButton");
 const gameFrame = document.querySelector("#gameFrame");
+const gameLoader = document.querySelector("#gameLoader");
 const playerGate = document.querySelector("#playerGate");
 const playerGateForm = document.querySelector("#playerGateForm");
 const playerNameInput = document.querySelector("#playerNameInput");
@@ -115,6 +116,10 @@ async function registerPlay() {
   const data = await response.json();
   updateStats(data.stats);
 }
+
+gameFrame.addEventListener("load", () => {
+  gameLoader.classList.add("is-hidden");
+});
 
 playButton.addEventListener("click", async () => {
   await registerPlay();
