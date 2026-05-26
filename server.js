@@ -195,13 +195,20 @@ function verifyAdminToken(token) {
     return false;
   }
 
-  const [expiresAt, signature] = token.split(".");
+  const dotIndex = token.indexOf(".");
+  const expiresAt = token.slice(0, dotIndex);
+  const signature = token.slice(dotIndex + 1);
   if (!expiresAt || !signature) {
     return false;
   }
 
   const expected = crypto.createHmac("sha256", SESSION_SECRET).update(expiresAt).digest("hex");
-  if (!crypto.timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"))) {
+  const sigBuf = Buffer.from(signature, "hex");
+  const expBuf = Buffer.from(expected, "hex");
+  if (sigBuf.length !== expBuf.length) {
+    return false;
+  }
+  if (!crypto.timingSafeEqual(sigBuf, expBuf)) {
     return false;
   }
 
