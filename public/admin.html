@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Panel Admin | Hyphae</title>
     <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   </head>
   <body class="admin-page">
     <header class="site-header">
@@ -83,7 +84,9 @@
               <h2>Visitas por dia</h2>
             </div>
           </div>
-          <canvas id="visitsChart" class="chart" width="720" height="320"></canvas>
+          <div class="chart-wrap">
+            <canvas id="visitsChart"></canvas>
+          </div>
         </article>
       </section>
 

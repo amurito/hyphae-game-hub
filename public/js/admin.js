@@ -11,6 +11,7 @@ const logTypeFilter = document.querySelector("#logTypeFilter");
 const deployTimestamp = document.querySelector("#deployTimestamp");
 const deployFiles = document.querySelector("#deployFiles");
 let latestAdminData = null;
+let chartInstance = null;
 
 function formatNumber(value) {
   return new Intl.NumberFormat("es").format(Number(value || 0));
@@ -25,54 +26,55 @@ function formatDate(value) {
 
 function drawChart(days) {
   const ctx = visitsChart.getContext("2d");
-  const ratio = window.devicePixelRatio || 1;
-  const width = visitsChart.clientWidth || 720;
-  const height = 320;
-  visitsChart.width = width * ratio;
-  visitsChart.height = height * ratio;
-  ctx.scale(ratio, ratio);
-  ctx.clearRect(0, 0, width, height);
-
-  const padding = 38;
-  const chartWidth = width - padding * 2;
-  const chartHeight = height - padding * 2;
-  const maxVisits = Math.max(1, ...days.map((day) => day.visits));
-
-  ctx.strokeStyle = "#343c4b";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(padding, padding);
-  ctx.lineTo(padding, height - padding);
-  ctx.lineTo(width - padding, height - padding);
-  ctx.stroke();
-
-  if (days.length === 0) {
-    ctx.fillStyle = "#a9b1c1";
-    ctx.font = "15px system-ui";
-    ctx.fillText("Sin datos todavia", padding, height / 2);
-    return;
+  if (chartInstance) {
+    chartInstance.destroy();
   }
-
-  const barGap = 8;
-  const barWidth = Math.max(12, (chartWidth - barGap * (days.length - 1)) / days.length);
-
-  days.forEach((day, index) => {
-    const barHeight = Math.max(2, (day.visits / maxVisits) * chartHeight);
-    const x = padding + index * (barWidth + barGap);
-    const y = height - padding - barHeight;
-
-    ctx.fillStyle = "#ff5c57";
-    ctx.fillRect(x, y, barWidth, barHeight);
-
-    ctx.fillStyle = "#a9b1c1";
-    ctx.font = "11px system-ui";
-    const label = day.day.slice(5);
-    ctx.save();
-    ctx.translate(x + barWidth / 2, height - 14);
-    ctx.rotate(-Math.PI / 4);
-    ctx.textAlign = "right";
-    ctx.fillText(label, 0, 0);
-    ctx.restore();
+  chartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: days.map((d) => d.day.slice(5)),
+      datasets: [
+        {
+          label: "Visitas",
+          data: days.map((d) => d.visits),
+          backgroundColor: "#ff5c57",
+          borderRadius: 4,
+          borderSkipped: false
+        },
+        {
+          label: "Partidas",
+          data: days.map((d) => d.plays),
+          backgroundColor: "#75b7ff",
+          borderRadius: 4,
+          borderSkipped: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: "#a9b1c1",
+            font: { family: "Inter, system-ui", size: 12 },
+            boxWidth: 12,
+            boxHeight: 12
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: "#a9b1c1", font: { size: 11 } },
+          grid: { color: "rgba(52,60,75,0.5)" }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: "#a9b1c1", precision: 0 },
+          grid: { color: "rgba(52,60,75,0.5)" }
+        }
+      }
+    }
   });
 }
 
@@ -154,9 +156,20 @@ resetButton.addEventListener("click", async () => {
     return;
   }
 
-  const response = await fetch("/api/admin/reset", { method: "POST" });
-  if (response.ok) {
+  resetButton.disabled = true;
+  resetButton.textContent = "Reseteando...";
+
+  try {
+    const response = await fetch("/api/admin/reset", { method: "POST" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(`Error al resetear: ${data.error || response.statusText}`);
+      return;
+    }
     await loadAdminStats();
+  } finally {
+    resetButton.disabled = false;
+    resetButton.textContent = "Resetear contadores";
   }
 });
 
@@ -172,5 +185,4 @@ logoutButton.addEventListener("click", async () => {
   window.location.href = "/";
 });
 
-window.addEventListener("resize", () => loadAdminStats());
 loadAdminStats();

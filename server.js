@@ -855,6 +855,10 @@ if (useSupabase) {
   app.get("/game", serveSupabaseGameFile);
 }
 
+app.get("/ping", (req, res) => {
+  res.json({ ok: true });
+});
+
 app.use(express.static(publicDir, {
   extensions: ["html"],
   setHeaders(res) {
