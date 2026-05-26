@@ -472,6 +472,83 @@ input[type="password"],
   height: 280px;
 }
 
+.changelog-section {
+  padding: 0 0 48px;
+}
+
+.changelog-list {
+  display: grid;
+  gap: 12px;
+}
+
+.changelog-entry {
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(32, 37, 48, 0.9);
+}
+
+.changelog-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.changelog-version {
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(255, 92, 87, 0.15);
+  border: 1px solid rgba(255, 92, 87, 0.35);
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.changelog-date {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.changelog-notes {
+  margin: 0;
+  padding-left: 18px;
+  color: #dce2ee;
+  line-height: 1.8;
+}
+
+.changelog-notes li + li {
+  margin-top: 2px;
+}
+
+.invite-form,
+.invite-result {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.invite-input,
+.invite-link-output {
+  flex: 1;
+  min-width: 200px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: #12161f;
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.invite-link-output {
+  color: var(--green);
+  cursor: text;
+}
+
 .player-count-badge {
   padding: 6px 12px;
   border: 1px solid var(--line);

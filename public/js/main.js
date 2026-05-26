@@ -121,6 +121,31 @@ gameFrame.addEventListener("load", () => {
   gameLoader.classList.add("is-hidden");
 });
 
+async function loadChangelog() {
+  const list = document.querySelector("#changelogList");
+  if (!list) return;
+  try {
+    const res = await fetch("/data/changelog.json");
+    if (!res.ok) return;
+    const entries = await res.json();
+    list.innerHTML = entries.map((entry) => `
+      <article class="changelog-entry">
+        <div class="changelog-header">
+          <span class="changelog-version">${entry.version}</span>
+          <span class="changelog-date">${entry.date}</span>
+        </div>
+        <ul class="changelog-notes">
+          ${entry.notes.map((n) => `<li>${n}</li>`).join("")}
+        </ul>
+      </article>
+    `).join("");
+  } catch {
+    // changelog opcional, no rompe la página
+  }
+}
+
+loadChangelog();
+
 playButton.addEventListener("click", async () => {
   await registerPlay();
   gameFrame.focus();

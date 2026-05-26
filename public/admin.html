@@ -93,6 +93,23 @@
       <section class="admin-panel">
         <div class="panel-heading">
           <div>
+            <p class="eyebrow">Invitaciones</p>
+            <h2>Links por jugador</h2>
+          </div>
+        </div>
+        <div class="invite-form">
+          <input class="invite-input" id="inviteNameInput" type="text" maxlength="32" placeholder="Nombre del jugador...">
+          <button class="button compact" id="generateInviteButton" type="button">Generar link</button>
+        </div>
+        <div class="invite-result" id="inviteResult" hidden>
+          <input class="invite-link-output" id="inviteLinkOutput" type="text" readonly>
+          <button class="button compact" id="copyInviteButton" type="button">Copiar</button>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="panel-heading">
+          <div>
             <p class="eyebrow">Jugadores</p>
             <h2>Quienes jugaron</h2>
           </div>

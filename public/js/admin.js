@@ -1,3 +1,8 @@
+const inviteNameInput = document.querySelector("#inviteNameInput");
+const generateInviteButton = document.querySelector("#generateInviteButton");
+const inviteResult = document.querySelector("#inviteResult");
+const inviteLinkOutput = document.querySelector("#inviteLinkOutput");
+const copyInviteButton = document.querySelector("#copyInviteButton");
 const visitCount = document.querySelector("#adminVisitCount");
 const playCount = document.querySelector("#adminPlayCount");
 const logsTable = document.querySelector("#logsTable");
@@ -238,6 +243,26 @@ resetButton.addEventListener("click", async () => {
     resetButton.disabled = false;
     resetButton.textContent = "Resetear contadores";
   }
+});
+
+generateInviteButton.addEventListener("click", () => {
+  const name = inviteNameInput.value.trim();
+  if (!name) { inviteNameInput.focus(); return; }
+  const url = `${location.origin}/?player=${encodeURIComponent(name)}`;
+  inviteLinkOutput.value = url;
+  inviteResult.hidden = false;
+  inviteLinkOutput.select();
+});
+
+copyInviteButton.addEventListener("click", async () => {
+  if (!inviteLinkOutput.value) return;
+  await navigator.clipboard.writeText(inviteLinkOutput.value).catch(() => {});
+  copyInviteButton.textContent = "Copiado!";
+  setTimeout(() => { copyInviteButton.textContent = "Copiar"; }, 2000);
+});
+
+inviteNameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") generateInviteButton.click();
 });
 
 refreshButton.addEventListener("click", loadAdminStats);
