@@ -18,3 +18,7 @@ services:
         sync: false
       - key: SUPABASE_GAME_BUCKET
         value: game
+      - key: TELEMETRY_EXPORT_TOKEN
+        generateValue: true   # token para bajar /api/admin/telemetry/export sin cookie
+      - key: TELEMETRY_INGEST_KEY
+        sync: false           # opcional; si lo seteás, el juego debe mandar X-Telemetry-Key

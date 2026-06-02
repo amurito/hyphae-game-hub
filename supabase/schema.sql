@@ -24,6 +24,24 @@ create table if not exists public.sessions (
   last_seen_at timestamptz not null default now()
 );
 
+-- Telemetria anonima opt-in del juego (una fila por run cerrada).
+-- Sin IP ni datos personales: session_id es aleatorio generado en el cliente.
+create table if not exists public.telemetry_runs (
+  id bigserial primary key,
+  received_at timestamptz not null default now(),
+  game_version text,
+  platform text,
+  session_id text,
+  final_route text,
+  pl_gained integer,
+  run_time double precision,
+  trascendencia_count integer,
+  payload jsonb not null
+);
+
+create index if not exists telemetry_runs_received_at_idx on public.telemetry_runs (received_at desc);
+create index if not exists telemetry_runs_route_idx on public.telemetry_runs (final_route);
+
 insert into public.counters (key, value)
 values ('visits', 0), ('plays', 0)
 on conflict (key) do nothing;

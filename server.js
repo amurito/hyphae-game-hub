@@ -25,6 +25,11 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_GAME_BUCKET = process.env.SUPABASE_GAME_BUCKET || "game";
 const useSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+// Telemetria del juego. INGEST_KEY opcional (header X-Telemetry-Key); si esta vacio,
+// el endpoint queda abierto como /api/visit y /api/play. EXPORT_TOKEN protege /export
+// para poder bajar los datos sin cookie de admin (ej. desde fetch_runs.py).
+const TELEMETRY_INGEST_KEY = process.env.TELEMETRY_INGEST_KEY || "";
+const TELEMETRY_EXPORT_TOKEN = process.env.TELEMETRY_EXPORT_TOKEN || "";
 const adminCookieName = "hg_admin";
 const adminSessionTtlMs = 1000 * 60 * 60 * 8;
 const loginWindowMs = 1000 * 60 * 15;
@@ -98,6 +103,19 @@ async function initDatabase() {
       play_counted INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       last_seen_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS telemetry_runs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      received_at TEXT NOT NULL,
+      game_version TEXT,
+      platform TEXT,
+      session_id TEXT,
+      final_route TEXT,
+      pl_gained INTEGER,
+      run_time REAL,
+      trascendencia_count INTEGER,
+      payload TEXT NOT NULL
     );
   `);
 
@@ -383,6 +401,135 @@ async function setVisitorFlag(visitorId, field) {
 function requireAdmin(req, res, next) {
   if (verifyAdminToken(req.cookies[adminCookieName])) {
     return next();
+  }
+  return res.status(401).json({ error: "No autenticado" });
+}
+
+// --- Telemetria del juego --------------------------------------------------
+
+const telemetryHits = new Map();
+const telemetryWindowMs = 1000 * 60;
+const telemetryMaxPerWindow = 30;
+
+function checkTelemetryRateLimit(req) {
+  // La IP solo se usa para limitar en memoria; nunca se persiste.
+  const key = clientIp(req) || "unknown";
+  const now = nowMs();
+  const hit = telemetryHits.get(key);
+  if (!hit || now > hit.resetAt) {
+    telemetryHits.set(key, { count: 1, resetAt: now + telemetryWindowMs });
+    return false;
+  }
+  if (hit.count >= telemetryMaxPerWindow) {
+    return true;
+  }
+  hit.count += 1;
+  return false;
+}
+
+function setTelemetryCors(res) {
+  // El juego tambien corre embebido en itch.io (otro origen): ingesta abierta.
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Telemetry-Key");
+  res.setHeader("Access-Control-Max-Age", "86400");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+}
+
+function coerceTelemetrySummary(payload) {
+  const meta = payload && typeof payload.meta === "object" && payload.meta ? payload.meta : {};
+  const summary =
+    payload && typeof payload.run_summary === "object" && payload.run_summary ? payload.run_summary : {};
+  const toInt = (v) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const toFloat = (v) => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const str = (v, len) => (typeof v === "string" ? v : v == null ? "" : String(v)).slice(0, len);
+  return {
+    game_version: str(meta.game_version, 32),
+    platform: str(meta.platform, 32),
+    session_id: str(meta.session_id, 64),
+    final_route: str(summary.final_route, 64),
+    pl_gained: toInt(summary.pl_gained),
+    run_time: toFloat(summary.run_time),
+    trascendencia_count: toInt(summary.trascendencia_count)
+  };
+}
+
+async function insertTelemetryRun(payload) {
+  const cols = coerceTelemetrySummary(payload);
+  if (useSupabase) {
+    const { error } = await supabase.from("telemetry_runs").insert({
+      received_at: isoNow(),
+      ...cols,
+      payload
+    });
+    if (error) {
+      throw error;
+    }
+    return;
+  }
+
+  await db.run(
+    `INSERT INTO telemetry_runs
+       (received_at, game_version, platform, session_id, final_route, pl_gained, run_time, trascendencia_count, payload)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    isoNow(),
+    cols.game_version,
+    cols.platform,
+    cols.session_id,
+    cols.final_route,
+    cols.pl_gained,
+    cols.run_time,
+    cols.trascendencia_count,
+    JSON.stringify(payload)
+  );
+}
+
+function summarizeTelemetry(rows) {
+  const tally = (key) => {
+    const counts = new Map();
+    for (const row of rows) {
+      const k = row[key] || "?";
+      counts.set(k, (counts.get(k) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([value, count]) => ({ [key]: value, count }))
+      .sort((a, b) => b.count - a.count);
+  };
+
+  const sessions = new Set(rows.map((row) => row.session_id).filter(Boolean));
+  let last = null;
+  for (const row of rows) {
+    if (row.received_at && (!last || row.received_at > last)) {
+      last = row.received_at;
+    }
+  }
+
+  return {
+    total_runs: rows.length,
+    distinct_sessions: sessions.size,
+    last_received: last,
+    by_route: tally("final_route"),
+    by_version: tally("game_version"),
+    by_platform: tally("platform")
+  };
+}
+
+function requireAdminOrToken(req, res, next) {
+  if (verifyAdminToken(req.cookies[adminCookieName])) {
+    return next();
+  }
+  if (TELEMETRY_EXPORT_TOKEN) {
+    const auth = req.headers.authorization || "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : req.query.token || "";
+    if (token && token === TELEMETRY_EXPORT_TOKEN) {
+      return next();
+    }
   }
   return res.status(401).json({ error: "No autenticado" });
 }
@@ -699,7 +846,7 @@ async function cleanupUploads(files) {
 }
 
 app.disable("x-powered-by");
-app.use(express.json());
+app.use(express.json({ limit: "600kb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
@@ -834,6 +981,85 @@ app.post("/api/admin/reset", requireAdmin, async (req, res, next) => {
       `);
     }
     res.json({ ok: true, stats: await currentStats() });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.options("/api/telemetry", (req, res) => {
+  setTelemetryCors(res);
+  res.status(204).end();
+});
+
+app.post("/api/telemetry", async (req, res, next) => {
+  try {
+    setTelemetryCors(res);
+
+    if (TELEMETRY_INGEST_KEY && req.headers["x-telemetry-key"] !== TELEMETRY_INGEST_KEY) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    if (checkTelemetryRateLimit(req)) {
+      return res.status(429).json({ error: "rate_limited" });
+    }
+
+    const payload = req.body;
+    if (!payload || typeof payload !== "object" || Array.isArray(payload) || !payload.run_summary) {
+      return res.status(400).json({ error: "bad_shape" });
+    }
+
+    await insertTelemetryRun(payload);
+    return res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/admin/telemetry", requireAdmin, async (req, res, next) => {
+  try {
+    let rows;
+    if (useSupabase) {
+      const { data, error } = await supabase
+        .from("telemetry_runs")
+        .select("game_version, platform, final_route, session_id, received_at");
+      if (error) {
+        throw error;
+      }
+      rows = data;
+    } else {
+      rows = await db.all(
+        "SELECT game_version, platform, final_route, session_id, received_at FROM telemetry_runs"
+      );
+    }
+    res.json(summarizeTelemetry(rows));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/admin/telemetry/export", requireAdminOrToken, async (req, res, next) => {
+  try {
+    let payloads;
+    if (useSupabase) {
+      const { data, error } = await supabase
+        .from("telemetry_runs")
+        .select("payload")
+        .order("id", { ascending: true });
+      if (error) {
+        throw error;
+      }
+      payloads = data.map((row) => row.payload);
+    } else {
+      const rows = await db.all("SELECT payload FROM telemetry_runs ORDER BY id ASC");
+      payloads = rows.map((row) => (typeof row.payload === "string" ? JSON.parse(row.payload) : row.payload));
+    }
+
+    if (req.query.format === "json") {
+      res.setHeader("Content-Type", "application/json");
+      return res.send(JSON.stringify(payloads));
+    }
+
+    res.setHeader("Content-Type", "application/x-ndjson");
+    return res.send(payloads.map((p) => JSON.stringify(p)).join("\n") + (payloads.length ? "\n" : ""));
   } catch (error) {
     next(error);
   }

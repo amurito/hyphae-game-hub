@@ -172,6 +172,60 @@ Tambien se acepta:
 window.parent.postMessage({ type: "game:play" }, "*");
 ```
 
+## Telemetría del juego (anónima, opt-in)
+
+El juego puede postear los datos de cada run cerrada a este hub. Es **opt-in**
+(checkbox en Ajustes) y **anónima**: el `session_id` es aleatorio y el servidor
+**no guarda IP ni datos personales**.
+
+### Aplicar el schema
+
+En Supabase → SQL Editor, ejecutá de nuevo `supabase/schema.sql` (es idempotente):
+agrega la tabla `telemetry_runs`. En modo SQLite local la tabla se crea sola.
+
+### Variables de entorno
+
+| Var | Requerida | Descripción |
+|-----|-----------|-------------|
+| `TELEMETRY_EXPORT_TOKEN` | recomendada | Token para bajar `/api/admin/telemetry/export` sin cookie de admin (lo usa `fetch_telemetry.py`). |
+| `TELEMETRY_INGEST_KEY` | opcional | Si está seteada, `/api/telemetry` exige el header `X-Telemetry-Key`. Si no, queda abierta como `/api/visit`. |
+
+### Endpoints
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| POST | `/api/telemetry` | `X-Telemetry-Key` (si hay `TELEMETRY_INGEST_KEY`) | Ingesta de una run. `204` si OK. CORS abierto (funciona desde itch.io). |
+| GET | `/api/admin/telemetry` | cookie admin | Resumen: totales, sesiones distintas, conteo por ruta/versión/plataforma. |
+| GET | `/api/admin/telemetry/export` | cookie admin **o** `Authorization: Bearer <TELEMETRY_EXPORT_TOKEN>` | Dump de payloads. NDJSON (default) o `?format=json`. |
+
+### Conectar el juego
+
+En el repo del juego, `TelemetryManager.gd`:
+
+```gdscript
+const REMOTE_ENDPOINT := "https://hyphae-game-hub.onrender.com/api/telemetry"
+const REMOTE_INGEST_KEY := ""  # igual a TELEMETRY_INGEST_KEY si lo usás
+```
+
+Re-exportá web/desktop. Con la telemetría activada, cada cierre de run se guarda
+local **y** se postea acá.
+
+### Ver los datos
+
+Chequeo rápido:
+
+```bash
+curl -H "Authorization: Bearer $TELEMETRY_EXPORT_TOKEN" \
+  "https://hyphae-game-hub.onrender.com/api/admin/telemetry/export?format=json"
+```
+
+Dashboard completo (reusa `tools/analyze_telemetry.py` del repo del juego):
+
+```bash
+python tools/fetch_telemetry.py --server https://hyphae-game-hub.onrender.com --token $TELEMETRY_EXPORT_TOKEN --out ./telemetry_fetched
+python tools/analyze_telemetry.py ./telemetry_fetched
+```
+
 ## Datos persistentes
 
 SQLite se guarda en:
