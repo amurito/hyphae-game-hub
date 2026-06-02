@@ -20,6 +20,8 @@ const deployTimestamp = document.querySelector("#deployTimestamp");
 const deployFiles = document.querySelector("#deployFiles");
 let latestAdminData = null;
 let chartInstance = null;
+let telRoutesChartInstance = null;
+let telPlatformChartInstance = null;
 
 function formatNumber(value) {
   return new Intl.NumberFormat("es").format(Number(value || 0));
@@ -280,4 +282,67 @@ logoutButton.addEventListener("click", async () => {
   window.location.href = "/";
 });
 
+function drawPieChart(canvasId, instanceRef, labels, data, colors) {
+  const ctx = document.querySelector("#" + canvasId).getContext("2d");
+  if (instanceRef.value) instanceRef.value.destroy();
+  instanceRef.value = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: "#202530" }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { color: "#a9b1c1", font: { size: 12 }, boxWidth: 12, padding: 14 } }
+      }
+    }
+  });
+}
+
+const ROUTE_COLORS = {
+  "HOMEOSTASIS": "#26a269", "ALLOSTASIS": "#1c71d8", "HOMEORHESIS": "#9141ac",
+  "ESPORULACIÓN": "#e5a50a", "ESPORULACION": "#e5a50a", "SIMBIOSIS": "#33dd88",
+  "PARASITISMO": "#c01c28", "HIPERASIMILACIÓN": "#ff7800", "HIPERASIMILACION": "#ff7800",
+  "DEPREDADOR DE REALIDADES": "#cc3322", "METABOLISMO OSCURO": "#8844aa",
+  "COLAPSO DEPREDATORIO": "#ff2244", "SINGULARIDAD": "#44ddff",
+  "DOMADOR DEL CAOS": "#ff9900", "POLIMORFÍA TOTAL": "#aa44ff",
+  "MENTE COLMENA DISTRIBUIDA": "#44ffaa", "PANSPERMIA NEGRA": "#888888",
+  "ASCESIS_PROFUNDA": "#cc88ff", "COLAPSO CONTROLADO": "#ffcc44",
+};
+const FALLBACK_COLORS = ["#75b7ff","#ff5c57","#5ee6a8","#ffcc44","#ff7800","#9141ac","#1c71d8"];
+
+async function loadTelemetryStats() {
+  const telSection = document.querySelector("#telemetrySection");
+  if (!telSection) return;
+  try {
+    const resp = await fetch("/api/admin/telemetry");
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    document.querySelector("#telTotalRuns").textContent = formatNumber(data.total_runs);
+    document.querySelector("#telDistinctSessions").textContent = formatNumber(data.distinct_sessions);
+    document.querySelector("#telLastReceived").textContent = data.last_received ? formatDate(data.last_received) : "—";
+    document.querySelector("#telemetryRunCount").textContent = `${formatNumber(data.total_runs)} run${data.total_runs !== 1 ? "s" : ""}`;
+
+    const routesRef = { value: telRoutesChartInstance };
+    const routeLabels = data.by_route.map(r => r.final_route || "?");
+    const routeData = data.by_route.map(r => r.count);
+    const routeColors = routeLabels.map((l, i) => ROUTE_COLORS[l] || FALLBACK_COLORS[i % FALLBACK_COLORS.length]);
+    drawPieChart("telRoutesChart", routesRef, routeLabels, routeData, routeColors);
+    telRoutesChartInstance = routesRef.value;
+
+    const platRef = { value: telPlatformChartInstance };
+    const platLabels = data.by_platform.map(p => p.platform || "?");
+    const platData = data.by_platform.map(p => p.count);
+    const platColors = ["#75b7ff","#5ee6a8","#ffcc44","#ff5c57"].slice(0, platLabels.length);
+    drawPieChart("telPlatformChart", platRef, platLabels, platData, platColors);
+    telPlatformChartInstance = platRef.value;
+  } catch (e) {
+    // silencioso — la sección queda con "—"
+  }
+}
+
 loadAdminStats();
+loadTelemetryStats();

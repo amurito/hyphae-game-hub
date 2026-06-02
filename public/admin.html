@@ -130,6 +130,40 @@
         </div>
       </section>
 
+      <section class="admin-panel" id="telemetrySection">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Telemetría anónima opt-in</p>
+            <h2>Runs del juego</h2>
+          </div>
+          <span class="player-count-badge" id="telemetryRunCount">0 runs</span>
+        </div>
+        <div class="metric-grid telemetry-metric-grid">
+          <article class="metric-card">
+            <span>Runs totales</span>
+            <strong id="telTotalRuns">—</strong>
+          </article>
+          <article class="metric-card">
+            <span>Sesiones distintas</span>
+            <strong id="telDistinctSessions">—</strong>
+          </article>
+          <article class="metric-card">
+            <span>Última recibida</span>
+            <strong id="telLastReceived">—</strong>
+          </article>
+        </div>
+        <div class="admin-grid telemetry-charts-grid">
+          <article class="admin-panel">
+            <div class="panel-heading"><div><p class="eyebrow">Distribución</p><h2>Rutas</h2></div></div>
+            <div class="chart-wrap"><canvas id="telRoutesChart"></canvas></div>
+          </article>
+          <article class="admin-panel">
+            <div class="panel-heading"><div><p class="eyebrow">Distribución</p><h2>Plataforma</h2></div></div>
+            <div class="chart-wrap"><canvas id="telPlatformChart"></canvas></div>
+          </article>
+        </div>
+      </section>
+
       <section class="admin-panel">
         <div class="panel-heading">
           <div>

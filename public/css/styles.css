@@ -671,3 +671,18 @@ tr:last-child td {
     flex-wrap: wrap;
   }
 }
+
+/* ── Telemetría ────────────────────────────────────────────────── */
+.telemetry-metric-grid {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 20px;
+}
+
+.telemetry-charts-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 640px) {
+  .telemetry-metric-grid { grid-template-columns: 1fr; }
+  .telemetry-charts-grid { grid-template-columns: 1fr; }
+}
