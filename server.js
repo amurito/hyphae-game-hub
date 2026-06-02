@@ -1036,6 +1036,10 @@ app.get("/api/admin/telemetry", requireAdmin, async (req, res, next) => {
   }
 });
 
+app.get("/api/admin/telemetry/token", requireAdmin, (req, res) => {
+  res.json({ token: TELEMETRY_EXPORT_TOKEN || "" });
+});
+
 app.get("/api/admin/telemetry/export", requireAdminOrToken, async (req, res, next) => {
   try {
     let payloads;

@@ -136,8 +136,12 @@
             <p class="eyebrow">Telemetría anónima opt-in</p>
             <h2>Runs del juego</h2>
           </div>
-          <span class="player-count-badge" id="telemetryRunCount">0 runs</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="player-count-badge" id="telemetryRunCount">0 runs</span>
+            <button class="button compact" id="copyFetchCmd" type="button" title="Copiar comando para bajar y analizar todas las runs localmente">Copiar comando análisis</button>
+          </div>
         </div>
+        <p id="fetchCmdCopied" style="display:none;color:var(--green);font-size:13px;margin-bottom:10px;">¡Comando copiado! Pegalo en una terminal dentro de idleantigravity/</p>
         <div class="metric-grid telemetry-metric-grid">
           <article class="metric-card">
             <span>Runs totales</span>

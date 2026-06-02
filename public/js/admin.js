@@ -344,5 +344,29 @@ async function loadTelemetryStats() {
   }
 }
 
+const copyFetchCmd = document.querySelector("#copyFetchCmd");
+const fetchCmdCopied = document.querySelector("#fetchCmdCopied");
+if (copyFetchCmd) {
+  copyFetchCmd.addEventListener("click", async () => {
+    let token = "";
+    try {
+      const r = await fetch("/api/admin/telemetry/token");
+      if (r.ok) token = (await r.json()).token || "";
+    } catch (_) {}
+    const cmd = [
+      `cd C:\\Users\\nicol\\Desktop\\idleantigravity`,
+      `python tools/fetch_telemetry.py --server https://hyphae-game-hub.onrender.com --token ${token || "<TELEMETRY_EXPORT_TOKEN>"} --out ./telemetry_fetched`,
+      `python tools/analyze_telemetry.py ./telemetry_fetched`
+    ].join("\n");
+    await navigator.clipboard.writeText(cmd).catch(() => {});
+    copyFetchCmd.textContent = "¡Copiado!";
+    if (fetchCmdCopied) fetchCmdCopied.style.display = "block";
+    setTimeout(() => {
+      copyFetchCmd.textContent = "Copiar comando análisis";
+      if (fetchCmdCopied) fetchCmdCopied.style.display = "none";
+    }, 3000);
+  });
+}
+
 loadAdminStats();
 loadTelemetryStats();
