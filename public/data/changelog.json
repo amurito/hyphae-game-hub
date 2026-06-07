@@ -1,5 +1,14 @@
 [
   {
+    "version": "v1.0.1",
+    "date": "2026-06-05",
+    "notes": [
+      "Red Micelial reworkeada: la rama ahora tiene 5 caminos distintos, cada uno con mecánica propia",
+      "Nuevo ending: Esclerocio Oscuro — la semilla durmiente que cruza ciclos",
+      "Correcciones de balance y anti-AFK en la rama verde"
+    ]
+  },
+  {
     "version": "v1.0.0.10",
     "date": "2026-05-25",
     "notes": [
