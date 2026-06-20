@@ -1,5 +1,17 @@
 [
   {
+    "version": "v1.0.2",
+    "date": "2026-06-18",
+    "notes": [
+      "El árbol oscuro está completo: cuatro sub-rutas del Metabolismo Oscuro — Autofagia, Necrosis, Protocolo Ω-cero y Remisión Metabólica",
+      "Remisión Metabólica: la primera ruta de redención — aprender a sanar en vez de colapsar (más adelante, otras ramas tendrán la suya)",
+      "Mecánica de involución: cuando una redención se pierde, el organismo vuelve atrás para tomar impulso",
+      "Buffs heredables (NG+) que cambian las runs normales: control manual de Ω, más biomasa inicial, el colapso ahora paga en vez de castigar",
+      "Cruces entre rutas que desbloquean bonificaciones permanentes",
+      "Mejoras de interfaz (tooltips en upgrades, atajos de teclado) y estabilidad de guardado"
+    ]
+  },
+  {
     "version": "v1.0.1",
     "date": "2026-06-05",
     "notes": [
